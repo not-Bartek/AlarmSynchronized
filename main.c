@@ -15,7 +15,7 @@
 #define MAX_INPUT 120
 volatile sig_atomic_t work = 1;
 
-void sigint_handler(int sig) { work = 0; }
+void sigint_handler() { work = 0; }
 
 int set_handler(void (*f)(int), int sigNo)
 {
@@ -27,11 +27,33 @@ int set_handler(void (*f)(int), int sigNo)
     return 0;
 }
 
+struct arguments
+{
+    int32_t time;
+    sem_t *semaphore;
+};
+
+void *thread_func(void *arg)
+{
+    struct arguments *args = (struct arguments *)arg;
+    uint32_t tt;
+    fprintf(stderr, "Will sleep for %d\n", args->time);
+    for (tt = args->time; tt > 0; tt = sleep(tt))
+        ;
+    puts("Wake up");
+    if (sem_post(args->semaphore) == -1)
+        ERR("sem_post");
+    free(args);
+    return NULL;
+}
+
+
+
 int main()
 {
     if (set_handler(sigint_handler, SIGINT))
         ERR("Setting SIGINT:");
-    //do_work();
+    do_work();
     fprintf(stderr, "Program has terminated.\n");
     return EXIT_SUCCESS;
 }
